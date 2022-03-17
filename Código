@@ -1,0 +1,48 @@
+%matplotlib inline
+import cv2
+from matplotlib import pyplot as plt
+import numpy as np
+img = cv2.imread('circulo.png')
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+image_lower_hsv = np.array([10, 90, 50])  
+image_upper_hsv = np.array([255, 255, 255])
+
+mask_hsv = cv2.inRange(img, image_lower_hsv, image_upper_hsv)
+
+circulos, r = cv2.findContours(mask_hsv, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+
+valorA1 = circulos[0]
+valorA2 = circulos[1]
+
+for i in circulos:
+    if (cv2.contourArea(i) > cv2.contourArea(valorA1)):
+        valorA1 = i
+
+for i in circulos:
+    if (cv2.contourArea(i) > cv2.contourArea(valorA2) and cv2.contourArea(i) < cv2.contourArea(valorA1)):
+        valorA2 = i
+
+for i in circulos:
+    if(cv2.contourArea(i) < cv2.contourArea(valorA1) and cv2.contourArea(i) < cv2.contourArea(valorA2)):
+        cv2.drawContours(mask_hsv, [i], -1, 0, -1)
+
+edges = cv2.Canny(mask_hsv,50,150)
+circles=cv2.HoughCircles(edges,cv2.HOUGH_GRADIENT,dp=1,minDist=330,param1=200,param2=5,minRadius=120,maxRadius=120)
+bordas_rgb = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+output = bordas_rgb
+if circles is not None:        
+    circles = np.uint16(np.around(circles))
+    for i in circles[0,:]:
+        # desenha o contorno do circulo
+        cv2.circle(output,(i[0],i[1]),i[2],(0,255,0),2)
+        # desenha no centro do circulo
+        cv2.circle(output,(i[0],i[1]),2,(0,0,255),3)
+        #cv2.contourArea(i)
+
+print("Área do Círculo 1: " + str(cv2.contourArea(valorA1)))
+print("Área do Círculo 2: " + str(cv2.contourArea(valorA2)))
+
+plt.figure(figsize = (10,10))
+plt.imshow(output, cmap="Greys_r", vmin=0, vmax=255); plt.show()
